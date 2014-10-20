@@ -30,7 +30,7 @@ public class Indexer {
 	    Directory index = new RAMDirectory();
 	    IndexWriterConfig config = new IndexWriterConfig(Version.LATEST, analyzer);
 	    IndexWriter w = new IndexWriter(index, config);
-	    String dir = "C:/Users/Abhiraj/JAVA/workspace/DR/files/cs570/";
+	    String dir = "C:/Users/Abhiraj/git/Search Engine for Lecture Video Archives/DR/files/cs570/";
 	    /*
 	    File folder = new File(dir);
 	    for (File fileEntry : folder.listFiles()) {	       
@@ -48,7 +48,7 @@ public class Indexer {
 	    w.close();
 	    
 	    //Query
-	    String queryStr = "problems";
+	    String queryStr = "what is breadth first search";
 	    Query q = new QueryParser("contents", analyzer).parse(queryStr);
 	    
 	    long startTime = System.currentTimeMillis();

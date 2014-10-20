@@ -2,6 +2,8 @@ package Parsing;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,9 +23,11 @@ import Segmentation.TSF;
 
 public class Parser {
 	
-	public static List<Document> getText(String fileName){
+	public static List<Document> getText(String fileName) throws UnsupportedEncodingException{
 		List<Document> docList = new ArrayList<Document>();
 		//Document doc = new Document();
+	    String dir = "C:/Users/Abhiraj/git/Search Engine for Lecture Video Archives/DR/files/cs570/segments/";
+
 		StringBuilder text = new StringBuilder();
 		
 		XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
@@ -67,6 +71,10 @@ public class Parser {
 				doc.add(new Field("title", title, options));
 				doc.add(new Field("contents", segment, options));
 				docList.add(doc);
+				
+				PrintWriter writer = new PrintWriter(dir+title, "ISO-8859-1");
+				writer.println(segment);				
+				writer.close();
 				
 			}
 			/*
