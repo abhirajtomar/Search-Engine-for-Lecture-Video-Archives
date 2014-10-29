@@ -1,14 +1,22 @@
 package Index;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.FieldInfo.IndexOptions;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
@@ -41,9 +49,28 @@ public class Indexer {
 	    }
 	    */
 	    
-	    String fileName = dir+"CSCI570_2014140920140122.dat";//"CSCI570_2014140920140122.dat";
-	    w.addDocuments(Parser.getText(fileName));
+	    //String fileName = dir+"CSCI570_2014140920140122.dat";//"CSCI570_2014140920140122.dat";
+	    //w.addDocuments(Parser.getText(fileName));
 		//w.addDocument(Parser.getText(fileName));
+	    File folder = new File(dir+"segments/");
+	    for (File fileEntry : folder.listFiles()) {	       
+	        String fileName = dir+"segments/"+fileEntry.getName()+"/";
+	        
+	        FieldType options = new FieldType();
+			options.setIndexed(true); 
+			options.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS); 
+			options.setStored(true); 
+			options.setStoreTermVectors(true); 
+			options.setTokenized(true);
+			
+	        String text = getFileText(fileName);
+	        //System.out.println(fileEntry.getName());
+	        //System.out.println(text);
+	        Document doc = new Document();
+	        doc.add(new Field("title", fileEntry.getName(), options));
+			doc.add(new Field("contents", text, options));
+			w.addDocument(doc);
+	    }
 		
 	    w.close();
 	    
@@ -76,5 +103,26 @@ public class Indexer {
 	    }
 	    
 	    reader.close();
+	}
+	
+	/**
+	 * Method takes the name of a file and returns all its content as a single string
+	 * @param fileName
+	 * @return
+	 * @throws IOException 
+	 */
+	private static String getFileText(String fileName) throws IOException {
+		  BufferedReader bufferedReader = new BufferedReader(new FileReader(fileName));
+		 
+		  StringBuffer stringBuffer = new StringBuffer();
+		  String line = null;
+		 
+		  while((line =bufferedReader.readLine())!=null){
+		 
+		   stringBuffer.append(line).append("\n");
+		  }
+		   
+		  //System.out.println(stringBuffer);
+		  return stringBuffer.toString();
 	}
 }
