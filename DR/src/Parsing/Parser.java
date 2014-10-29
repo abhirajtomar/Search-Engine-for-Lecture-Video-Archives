@@ -23,13 +23,17 @@ import Segmentation.TSF;
 
 public class Parser {
 	
-	public static List<Document> getText(String fileName) throws UnsupportedEncodingException{
-		List<Document> docList = new ArrayList<Document>();
-		//Document doc = new Document();
+	public static void main(String[] args) throws UnsupportedEncodingException{
+		String dir = "C:/Users/Abhiraj/git/Search Engine for Lecture Video Archives/DR/files/cs570/";	   
+	    String fileName = dir+"CSCI570_2014140920140122.dat";//"CSCI570_2014140920140122.dat";
+		getText(fileName);
+	}
+	
+	public static void getText(String fileName) throws UnsupportedEncodingException{
+			
 	    String dir = "C:/Users/Abhiraj/git/Search Engine for Lecture Video Archives/DR/files/cs570/segments/";
 
-		StringBuilder text = new StringBuilder();
-		
+		StringBuilder text = new StringBuilder();		
 		XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
 		
 		try{
@@ -55,45 +59,21 @@ public class Parser {
 			
 			TSF segmenter = new TSF(sentences,0.35,40);
 			List<String> segments = segmenter.getSegments();
-			
-			FieldType options = new FieldType();
-			options.setIndexed(true); 
-			options.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS); 
-			options.setStored(true); 
-			options.setStoreTermVectors(true); 
-			options.setTokenized(true);
-			
+						
 			for(int i=0;i<segments.size();i++){
-				Document doc = new Document();
 				String segment = segments.get(i);
 				String title = (i+1)+"_"+ fileName.substring( fileName.lastIndexOf('/')+1, fileName.length());
-				
-				doc.add(new Field("title", title, options));
-				doc.add(new Field("contents", segment, options));
-				docList.add(doc);
 				
 				PrintWriter writer = new PrintWriter(dir+title, "ISO-8859-1");
 				writer.println(segment);				
 				writer.close();
 				
 			}
-			/*
-			String title = fileName.substring( fileName.lastIndexOf('/')+1, fileName.length());
-			FieldType options = new FieldType();
-			options.setIndexed(true); 
-			options.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS); 
-			options.setStored(true); 
-			options.setStoreTermVectors(true); 
-			options.setTokenized(true);
-			doc.add(new Field("title", title, options));
-			doc.add(new Field("contents", text.toString(), options));
-			*/
-			//System.out.println(text.toString());
-			
+						
 		} catch (FileNotFoundException | XMLStreamException e) {
             e.printStackTrace();
         }
 		
-		return docList;
+		return;
 	}
 }
