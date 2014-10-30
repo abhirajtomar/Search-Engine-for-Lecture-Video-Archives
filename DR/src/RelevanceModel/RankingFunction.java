@@ -1,11 +1,15 @@
 package RelevanceModel;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
 import java.util.Set;
 
 import org.apache.lucene.document.Document;
@@ -28,6 +32,7 @@ public class RankingFunction {
 	private Directory index;
 	private IndexReader reader;
 	private double lambda;
+	private double[] docProbs;
 	
 	public RankingFunction(Directory index, double lambda) throws IOException{
 		this.index=index;
@@ -94,7 +99,7 @@ public class RankingFunction {
 				
 		Bits liveDocs = MultiFields.getLiveDocs(reader);
 		
-		double[] docProbs = new double[reader.numDocs()];//P(Q|d)
+		docProbs = new double[reader.numDocs()];//P(Q|d)
 		
 		//new way by using additional space
 		//Iterate over Vocab
@@ -134,11 +139,36 @@ public class RankingFunction {
             	docProbs[i] += (v_q*Math.log(wordCounts[i]/docFreqs[i]));
             }           
         }
-		
+		/*
 		System.out.println("Final P(Q|d): ");
 		for(int i=0;i<docProbs.length;i++){
-			System.out.println("Doc "+i+" : "+docProbs[i]);
+			System.out.println((i+1)+". "+reader.document(i).getValues("title")[0]+" : "+docProbs[i]);
 		 }
+		 */
+	}
+	
+	/**
+	 * Returns a list of the titles of top n documents in the index 
+	 * @param n : The number of top documents required
+	 * @return List of titles of top documents
+	 * @throws IOException 
+	 */
+	public List<String> getTopNDocs(int n) throws IOException{
+		List<String> topDocs = new ArrayList<String>();
+		
+		ScoreComparator scoreComp = new ScoreComparator(docProbs);
+		PriorityQueue<Integer> docHeap = new PriorityQueue<Integer>(reader.numDocs(),scoreComp);
+		for (int i=0;i<docProbs.length;i++) {
+			docHeap.offer(i);
+			//System.out.println("");
+			//for(Integer yo:docHeap)System.out.print(yo+1 +",");
+		}
+		//System.out.println("");
+		for(int i=0; i<n ; i++){
+			topDocs.add(reader.document(docHeap.poll()).getValues("title")[0]);
+		}
+		
+		return topDocs;
 	}
 	
 	public Map<Integer,Double> getTokenCounts(Term term) throws IOException{
@@ -198,6 +228,25 @@ public class RankingFunction {
 			}
 		}
 		return docFreqs;
+	}
+	
+	
+	
+	public class ScoreComparator implements Comparator<Integer>{
+		private double[] scores;		
+		
+		public ScoreComparator(double[] scores){
+			this.scores = scores;
+		}
+		
+		@Override
+		public int compare(Integer p, Integer q) {
+			if(scores[q]>scores[p])return 1;
+			else if(scores[q]<scores[p])return -1;
+			else return 0;
+			//return (int) (Math.abs(scores[p]) - Math.abs(scores[q]));
+		}
+		
 	}
 	
 

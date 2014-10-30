@@ -7,6 +7,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -86,6 +87,13 @@ public class Indexer {
 	    long endTime   = System.currentTimeMillis();
 	    long totalTime = endTime - startTime;
 	    System.out.println("TIME: "+totalTime);
+	    
+	    List<String> topDocs = ranker.getTopNDocs(10);
+	    System.out.println("\nRelevance Model Estimation:");
+	    for(int i = 1;i<=10;i++){	    	
+	    	System.out.println(i+". "+topDocs.get(i-1));
+	    }
+	    
 	    //Search
 	    int hitsPerPage = 10;
 	    IndexReader reader = DirectoryReader.open(index);	    
