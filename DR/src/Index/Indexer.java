@@ -76,7 +76,7 @@ public class Indexer {
 	    w.close();
 	    
 	    //Query
-	    String queryStr = "what is breadth first search";
+	    String queryStr = "breadth first search";
 	    Query q = new QueryParser("contents", analyzer).parse(queryStr);
 	    
 	    long startTime = System.currentTimeMillis();
