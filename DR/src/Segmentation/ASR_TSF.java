@@ -1,23 +1,18 @@
 package Segmentation;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
-public class TSF {
-	List<String> doc;
-	double threshold;
-	int minSegSize;
-	
-	public TSF(List<String> sentences,double threshold,int minSegSize){
-		this.doc = sentences;
-		this.threshold = threshold;
-		this.minSegSize = minSegSize;
+public class ASR_TSF extends TSF {
+	List<String[]> startEndTimes;
+	List<String[]> segmentTimes;
+	public ASR_TSF(List<String> sentences,List<String[]> startEndTimes, double threshold, int minSegSize) {
+		super(sentences, threshold, minSegSize);
+		this.startEndTimes = startEndTimes;
+		segmentTimes = new ArrayList<String[]>();
 	}
 	
+	@Override
 	public List<String> getSegments(){
 		List<String> segments= new ArrayList<String>();
 		List<Integer> boundaries= new ArrayList<Integer>();
@@ -74,16 +69,22 @@ public class TSF {
 			
 			mid++;
 		}
+		boundaries.add(doc.size()-1);
 		
 		start = 0;
 		
 		for(Integer boundary:boundaries){
 			StringBuilder sb = new StringBuilder();
+			String[] times = new String[2];
+			times[0] = startEndTimes.get(start)[0];
+			times[1] = startEndTimes.get(boundary)[1];
+			
 			while(start<=boundary){
 				sb.append(doc.get(start)+"\n");
 				start++;
 			}
-			segments.add(sb.toString());
+			segments.add(sb.toString());			
+			segmentTimes.add(times);
 		}
 		/*
 		int i=1;
@@ -97,52 +98,9 @@ public class TSF {
 		System.out.println("Total Segments: "+segments.size());
 		return segments;
 	}
+	
+	public List<String[]> getSegmentTimes(){
+		return segmentTimes;
+	}
 
-	protected double getSimilarity(List<String> pre, List<String> post) {
-		
-		double similarity = 0.0;
-		List<Map<String, Integer>> preScores= new ArrayList<Map<String, Integer>>();
-		List<Map<String, Integer>> postScores= new ArrayList<Map<String, Integer>>();
-		
-		for(String sentence:pre){
-			Map<String, Integer> scoreMap = new HashMap<>();
-			String[] words = sentence.split(" ");
-		    for (String w : words) {
-		        Integer n = scoreMap.get(w);
-		        n = (n == null) ? 1 : ++n;
-		        scoreMap.put(w, n);
-		    }
-		    preScores.add(scoreMap);
-		}
-		for(String sentence:post){
-			Map<String, Integer> scoreMap = new HashMap<>();
-			String[] words = sentence.split(" ");
-		    for (String w : words) {
-		        Integer n = scoreMap.get(w);
-		        n = (n == null) ? 1 : ++n;
-		        scoreMap.put(w, n);
-		    }
-		    postScores.add(scoreMap);
-		}
-		for(Map<String, Integer> preScore: preScores){
-			for(Map<String, Integer> postScore: postScores){
-				similarity += cosine_similarity(preScore,postScore);
-			}			
-		}
-		
-		similarity /= (preScores.size()*postScores.size());
-		
-		return similarity;
-	}
-	
-	public double cosine_similarity(Map<String, Integer> v1, Map<String, Integer> v2) {
-        Set<String> both = new HashSet<String>(v1.keySet());
-        both.retainAll(v2.keySet());
-        double sclar = 0, norm1 = 0, norm2 = 0;
-        for (String k : both) sclar += v1.get(k) * v2.get(k);
-        for (String k : v1.keySet()) norm1 += v1.get(k) * v1.get(k);
-        for (String k : v2.keySet()) norm2 += v2.get(k) * v2.get(k);
-        return sclar / Math.sqrt(norm1 * norm2);
-	}
-	
 }

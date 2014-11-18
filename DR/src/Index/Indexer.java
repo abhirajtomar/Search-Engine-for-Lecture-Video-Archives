@@ -2,12 +2,19 @@ package Index;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+
+import javax.xml.stream.XMLEventReader;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.events.StartElement;
+import javax.xml.stream.events.XMLEvent;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -32,14 +39,15 @@ import Parsing.Parser;
 import RelevanceModel.RankingFunction;
 
 public class Indexer {
-	public static void main(String[] args) throws IOException, ParseException{
+	static String dir;
+	public static void main(String[] args) throws IOException, ParseException, XMLStreamException{
 		//Indexing
 		StandardAnalyzer analyzer = new StandardAnalyzer();
 	    
 	    Directory index = new RAMDirectory();
 	    IndexWriterConfig config = new IndexWriterConfig(Version.LATEST, analyzer);
 	    IndexWriter w = new IndexWriter(index, config);
-	    String dir = "C:/Users/Abhiraj/git/Search Engine for Lecture Video Archives/DR/files/cs570/";
+	    dir = "C:/Users/Abhiraj/git/Search Engine for Lecture Video Archives/DR/files/cs570/";
 	    /*
 	    File folder = new File(dir);
 	    for (File fileEntry : folder.listFiles()) {	       
@@ -55,21 +63,17 @@ public class Indexer {
 		//w.addDocument(Parser.getText(fileName));
 	    File folder = new File(dir+"segments/");
 	    for (File fileEntry : folder.listFiles()) {	       
-	        String fileName = dir+"segments/"+fileEntry.getName()+"/";
-	        
-	        FieldType options = new FieldType();
-			options.setIndexed(true); 
-			options.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS); 
-			options.setStored(true); 
-			options.setStoreTermVectors(true); 
-			options.setTokenized(true);
-			
-	        String text = getFileText(fileName);
+	        //String fileName = dir+"segments/"+fileEntry.getName()+"/";
+	        		
+	        //String text = getFileText(fileName);
 	        //System.out.println(fileEntry.getName());
 	        //System.out.println(text);
+	        /*
 	        Document doc = new Document();
 	        doc.add(new Field("title", fileEntry.getName(), options));
 			doc.add(new Field("contents", text, options));
+			*/
+	        Document doc = generateDoc(fileEntry);
 			w.addDocument(doc);
 	    }
 		
@@ -113,6 +117,56 @@ public class Indexer {
 	    reader.close();
 	}
 	
+	private static Document generateDoc(File fileEntry) throws FileNotFoundException, XMLStreamException {
+		Document doc = new Document();
+		String fileName = dir+"segments/"+fileEntry.getName()+"/";
+        
+        FieldType options = new FieldType();
+		options.setIndexed(true); 
+		options.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS); 
+		options.setStored(true); 
+		options.setStoreTermVectors(true); 
+		options.setTokenized(true);
+		String startTime="0.0";
+		String endTime="0.0";
+		String text = "";
+		XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
+		
+		XMLEventReader xmlEventReader = xmlInputFactory.createXMLEventReader(new FileInputStream(fileName), "ISO-8859-1");
+		while(xmlEventReader.hasNext()){
+			XMLEvent xmlEvent = xmlEventReader.nextEvent();
+			if (xmlEvent.isStartElement()){
+				StartElement startElement = xmlEvent.asStartElement();
+				if(startElement.getName().getLocalPart().equals("startTime")){
+					xmlEvent = xmlEventReader.nextEvent();
+					if(!xmlEvent.isEndElement()){
+						startTime = xmlEvent.asCharacters().getData();
+					}					
+				}
+				else if(startElement.getName().getLocalPart().equals("endTime")){
+					xmlEvent = xmlEventReader.nextEvent();
+					if(!xmlEvent.isEndElement()){
+						endTime = xmlEvent.asCharacters().getData();
+					}					
+				}
+				else if(startElement.getName().getLocalPart().equals("text")){
+					xmlEvent = xmlEventReader.nextEvent();
+					if(!xmlEvent.isEndElement()){
+						text = xmlEvent.asCharacters().getData();
+					}					
+				}
+			}		
+		}
+		
+		doc.add(new Field("title", fileEntry.getName(), options));
+		doc.add(new Field("contents", text, options));
+		//options.setIndexed(false);
+		doc.add(new Field("startTime",startTime,options));
+		doc.add(new Field("endTime",endTime,options));
+		
+		return doc;
+	}
+
 	/**
 	 * Method takes the name of a file and returns all its content as a single string
 	 * @param fileName

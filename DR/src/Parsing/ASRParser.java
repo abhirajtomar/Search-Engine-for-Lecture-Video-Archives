@@ -14,6 +14,9 @@ import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
+import Segmentation.ASR_TSF;
+import Segmentation.TSF;
+
 public class ASRParser {
 	public static void main(String[] args) throws UnsupportedEncodingException{
 		String dir = "C:/Users/Abhiraj/Desktop/";	   
@@ -25,16 +28,17 @@ public class ASRParser {
 		StringBuilder text = new StringBuilder();		
 		XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
 		List<String> words = new ArrayList<String>();
-		List<List<String>> sentences = new ArrayList<List<String>>();
-		List<String> startTimes = new ArrayList<String>();
-		List<String> endTimes = new ArrayList<String>();
+		List<String> sentences = new ArrayList<String>();
+		List<String[]> startEndTimes = new ArrayList<String[]>();
+		
 		
 		QName startAttr = new QName("Start");
 		QName endAttr = new QName("End");
 		
 		boolean firstSentence = true;
 		StringBuilder sb = new StringBuilder();
-		List<String> sentList = new ArrayList<String>();
+		//List<String> sentList = new ArrayList<String>();
+		String[] times = new String[2];
 		try{
 			XMLEventReader xmlEventReader = xmlInputFactory.createXMLEventReader(new FileInputStream(fileName), "ISO-8859-1");
 						
@@ -53,15 +57,19 @@ public class ASRParser {
 						QName name = new QName("SRT");
 						if(!firstSentence){
 							String sentence = sb.toString().trim();
-							sentList.add(sentence);
-							sentences.add(sentList);
+							
+							sentences.add(sentence);
+							startEndTimes.add(times);
 						}
 						else firstSentence = false;
 						
 						sb = new StringBuilder();
-						sentList = new ArrayList<String>();						
-						sentList.add(startElement.getAttributeByName(startAttr).getValue());
-						sentList.add(startElement.getAttributeByName(endAttr).getValue());
+						//sentList = new ArrayList<String>();	
+						times = new String[2];
+						times[0] = startElement.getAttributeByName(startAttr).getValue();
+						times[1] = startElement.getAttributeByName(endAttr).getValue();
+						//sentList.add(startElement.getAttributeByName(startAttr).getValue());
+						//sentList.add(startElement.getAttributeByName(endAttr).getValue());
 						
 						while(true){
 							xmlEvent = xmlEventReader.nextEvent();
@@ -85,11 +93,15 @@ public class ASRParser {
 				}				
 			}
 			String sentence = sb.toString().trim();
-			sentList.add(sentence);
-			sentences.add(sentList);
-			for(int i = 0 ;i<sentences.size();i++)System.out.println(sentences.get(i).get(0)+","+sentences.get(i).get(1)+","+sentences.get(i).get(2));
-			
-						
+			//sentList.add(sentence);
+			sentences.add(sentence);
+			startEndTimes.add(times);
+			for(int i = 0 ;i<sentences.size();i++)System.out.println(startEndTimes.get(i)[0]+","+startEndTimes.get(i)[1]+","+sentences.get(i));
+			ASR_TSF segmenter = new ASR_TSF(sentences,startEndTimes,0.35,25);
+			List<String> segments = segmenter.getSegments();
+			List<String[]> segmentTimes = segmenter.getSegmentTimes();
+			for(int i = 0 ;i<segments.size();i++)System.out.println(segmentTimes.get(i)[0]+"\n"+segmentTimes.get(i)[1]+"\n"+segments.get(i));
+			System.out.println("Total Segments: "+segments.size());			
 		} catch (FileNotFoundException | XMLStreamException e) {
             e.printStackTrace();
         }
