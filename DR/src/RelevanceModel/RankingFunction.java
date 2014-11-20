@@ -153,8 +153,8 @@ public class RankingFunction {
 	 * @return List of titles of top documents
 	 * @throws IOException 
 	 */
-	public List<String> getTopNDocs(int n) throws IOException{
-		List<String> topDocs = new ArrayList<String>();
+	public List<Integer> getTopNDocs(int n) throws IOException{
+		List<Integer> topDocs = new ArrayList<Integer>();
 		
 		ScoreComparator scoreComp = new ScoreComparator(docProbs);
 		PriorityQueue<Integer> docHeap = new PriorityQueue<Integer>(reader.numDocs(),scoreComp);
@@ -165,7 +165,8 @@ public class RankingFunction {
 		}
 		//System.out.println("");
 		for(int i=0; i<n ; i++){
-			topDocs.add(reader.document(docHeap.poll()).getValues("title")[0]);
+			//topDocs.add(reader.document(docHeap.poll()).getValues("title")[0]);
+			topDocs.add(docHeap.poll());
 		}
 		
 		return topDocs;

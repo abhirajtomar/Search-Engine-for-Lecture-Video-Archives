@@ -97,10 +97,10 @@ public class ASRParser {
 			sentences.add(sentence.replaceAll("\\\\.*\\s+", " "));
 			startEndTimes.add(times);
 			for(int i = 0 ;i<sentences.size();i++)System.out.println(startEndTimes.get(i)[0]+","+startEndTimes.get(i)[1]+","+sentences.get(i));
-			ASR_TSF segmenter = new ASR_TSF(sentences,startEndTimes,0.35,25);
+			ASR_TSF segmenter = new ASR_TSF(sentences,startEndTimes,0.35,15);
 			List<String> segments = segmenter.getSegments();
 			List<String[]> segmentTimes = segmenter.getSegmentTimes();
-			for(int i = 0 ;i<segments.size();i++)System.out.println(segmentTimes.get(i)[0]+"\n"+segmentTimes.get(i)[1]+"\n"+segments.get(i));
+			for(int i = 0 ;i<segments.size();i++)System.out.println(segmentTimes.get(i)[0]+"\n"+segmentTimes.get(i)[1]+"\n"+segments.get(i).replace("\n", " "));
 			System.out.println("Total Segments: "+segments.size());			
 		} catch (FileNotFoundException | XMLStreamException e) {
             e.printStackTrace();

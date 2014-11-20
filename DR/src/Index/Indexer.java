@@ -92,15 +92,19 @@ public class Indexer {
 	    long totalTime = endTime - startTime;
 	    System.out.println("TIME: "+totalTime);
 	    
-	    List<String> topDocs = ranker.getTopNDocs(10);
+	    IndexReader reader = DirectoryReader.open(index);
+	    List<Integer> topDocs = ranker.getTopNDocs(10);
+	    
 	    System.out.println("\nRelevance Model Estimation:");
-	    for(int i = 1;i<=10;i++){	    	
-	    	System.out.println(i+". "+topDocs.get(i-1));
+	    for(int i = 1;i<=10;i++){	    
+	    	Document docn = reader.document(topDocs.get(i-1));
+	    	System.out.println(i+". "+docn.getValues("title")[0]);
+	    	//System.out.println(docn.getValues("contents")[0].replace("\n"," "));
 	    }
 	    
 	    //Search
 	    int hitsPerPage = 10;
-	    IndexReader reader = DirectoryReader.open(index);	    
+	    //IndexReader reader = DirectoryReader.open(index);	    
 	    IndexSearcher searcher = new IndexSearcher(reader);
 	    TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage, true);
 	    searcher.search(q, collector);
@@ -150,9 +154,12 @@ public class Indexer {
 					}					
 				}
 				else if(startElement.getName().getLocalPart().equals("text")){
+					text = "";
 					xmlEvent = xmlEventReader.nextEvent();
-					if(!xmlEvent.isEndElement()){
-						text = xmlEvent.asCharacters().getData();
+					//if(!xmlEvent.isEndElement()){
+					while(xmlEvent.isCharacters()){
+						text += xmlEvent.asCharacters().getData();
+						xmlEvent = xmlEventReader.nextEvent();
 					}					
 				}
 			}		
