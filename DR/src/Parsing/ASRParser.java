@@ -19,7 +19,7 @@ import Segmentation.TSF;
 
 public class ASRParser {
 	public static void main(String[] args) throws UnsupportedEncodingException{
-		String dir = "C:/Users/Abhiraj/Desktop/";	   
+		String dir = "C:/Users/Abhiraj/Desktop/DR/";	   
 	    String fileName = dir+"MIT6_006F11_lec14_300k.xml/";//"CSCI570_2014140920140122.dat";
 		getText(fileName);
 	}
@@ -58,7 +58,7 @@ public class ASRParser {
 						if(!firstSentence){
 							String sentence = sb.toString().trim();
 							
-							sentences.add(sentence);
+							sentences.add(sentence.replaceAll("\\\\.*\\s+", " "));
 							startEndTimes.add(times);
 						}
 						else firstSentence = false;
@@ -94,7 +94,7 @@ public class ASRParser {
 			}
 			String sentence = sb.toString().trim();
 			//sentList.add(sentence);
-			sentences.add(sentence);
+			sentences.add(sentence.replaceAll("\\\\.*\\s+", " "));
 			startEndTimes.add(times);
 			for(int i = 0 ;i<sentences.size();i++)System.out.println(startEndTimes.get(i)[0]+","+startEndTimes.get(i)[1]+","+sentences.get(i));
 			ASR_TSF segmenter = new ASR_TSF(sentences,startEndTimes,0.35,25);
