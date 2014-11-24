@@ -21,6 +21,7 @@ public class ASRParser {
 	public static void main(String[] args) throws UnsupportedEncodingException{
 		String dir = "C:/Users/Abhiraj/Desktop/DR/";	   
 	    String fileName = dir+"MIT6_006F11_lec14_300k.xml/";//"CSCI570_2014140920140122.dat";
+	    fileName = "C:/Users/Abhiraj/Desktop/DR/ffmpeg/yoyo.xml";
 		getText(fileName);
 	}
 	
@@ -97,7 +98,7 @@ public class ASRParser {
 			sentences.add(sentence.replaceAll("\\\\.*\\s+", " "));
 			startEndTimes.add(times);
 			for(int i = 0 ;i<sentences.size();i++)System.out.println(startEndTimes.get(i)[0]+","+startEndTimes.get(i)[1]+","+sentences.get(i));
-			ASR_TSF segmenter = new ASR_TSF(sentences,startEndTimes,0.35,15);
+			ASR_TSF segmenter = new ASR_TSF(sentences,startEndTimes,0.40,20);
 			List<String> segments = segmenter.getSegments();
 			List<String[]> segmentTimes = segmenter.getSegmentTimes();
 			for(int i = 0 ;i<segments.size();i++)System.out.println(segmentTimes.get(i)[0]+"\n"+segmentTimes.get(i)[1]+"\n"+segments.get(i).replace("\n", " "));

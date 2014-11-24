@@ -28,6 +28,7 @@ public class Parser {
 	public static void main(String[] args) throws UnsupportedEncodingException{
 		String dir = "C:/Users/Abhiraj/git/Search Engine for Lecture Video Archives/DR/files/cs570/";	   
 	    String fileName = dir+"CSCI570_2014140920140122.dat";//"CSCI570_2014140920140122.dat";
+	    //fileName = "C:/Users/Abhiraj/Desktop/DR/EE41_2014345420140922.dfxp.xml";
 		getText(fileName);
 	}
 	
@@ -75,13 +76,20 @@ public class Parser {
 				startEndTimes.get(i)[0] = String.valueOf(Double.parseDouble(startEndTimes.get(i)[0])-offset);
 				startEndTimes.get(i)[1] = String.valueOf(Double.parseDouble(startEndTimes.get(i)[1])-offset);				
 			}
+			/*
+			PrintWriter writer2 = new PrintWriter(dir+"yoyo_orig.txt", "ISO-8859-1");
+			for(String sent:sentences)writer2.println(sent);
+			writer2.close();
+			*/
 			//TSF segmenter = new TSF(sentences,0.35,40);
 			//List<String> segments = segmenter.getSegments();
-			ASR_TSF segmenter = new ASR_TSF(sentences,startEndTimes,0.35,40);
+			ASR_TSF segmenter = new ASR_TSF(sentences,startEndTimes,0.40,20);
 			List<String> segments = segmenter.getSegments();
 			List<String[]> segmentTimes = segmenter.getSegmentTimes();
 			
-			for(int i = 0 ;i<segments.size();i++)System.out.println(segmentTimes.get(i)[0]+"\n"+segmentTimes.get(i)[1]+"\n"+segments.get(i));			
+			//for(int i = 0 ;i<segments.size();i++)System.out.println(segmentTimes.get(i)[0]+"\n"+segmentTimes.get(i)[1]+"\n"+segments.get(i));			
+			
+			
 			
 			for(int i=0;i<segments.size();i++){
 				String segment = segments.get(i);

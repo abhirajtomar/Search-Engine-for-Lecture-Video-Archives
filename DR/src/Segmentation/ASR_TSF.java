@@ -14,6 +14,7 @@ public class ASR_TSF extends TSF {
 	
 	@Override
 	public List<String> getSegments(){
+		formatSentencesOnWords();
 		List<String> segments= new ArrayList<String>();
 		List<Integer> boundaries= new ArrayList<Integer>();
 		int start = 0;
@@ -78,13 +79,48 @@ public class ASR_TSF extends TSF {
 			String[] times = new String[2];
 			times[0] = startEndTimes.get(start)[0];
 			times[1] = startEndTimes.get(boundary)[1];
-			
+			/*
+			if((boundary-start) > 30){
+				int tempmid = (boundary+start)/2; 
+				while(start<=tempmid){
+					sb.append(doc.get(start)+"\n");
+					start++;
+				}
+				segments.add(sb.toString());
+				times[1] = startEndTimes.get(tempmid)[1];
+				segmentTimes.add(times);
+				times[0] = startEndTimes.get(start)[0];
+				times[1] = startEndTimes.get(boundary)[1];
+				sb = new StringBuilder();
+			}
+			*/
 			while(start<=boundary){
 				sb.append(doc.get(start)+"\n");
 				start++;
 			}
-			segments.add(sb.toString());			
-			segmentTimes.add(times);
+			String newseg = sb.toString();
+			
+			int wordcount = newseg.replace("\n"," ").split(" ").length;
+			if(wordcount>350){
+				
+				System.out.println("Bigger!!!"+wordcount);
+				int midpoint = newseg.length()/2;
+				while(newseg.charAt(midpoint)!=' ')midpoint++;
+				String seg1 = newseg.substring(0,midpoint);
+				String seg2 = newseg.substring(midpoint);
+				
+				//*** Times need to be modified***
+				segments.add(seg1);
+				segmentTimes.add(times);
+				segments.add(seg2);
+				segmentTimes.add(times);
+				
+				
+			}
+			else{
+				segments.add(newseg);			
+				segmentTimes.add(times);
+			}
 		}
 		/*
 		int i=1;
@@ -98,7 +134,27 @@ public class ASR_TSF extends TSF {
 		System.out.println("Total Segments: "+segments.size());
 		return segments;
 	}
-	
+	public void formatSentencesOnWords(){
+		List<String> newdoc = new ArrayList<String>();
+		StringBuilder sb = new StringBuilder();
+		for(String sent:doc){
+			sb.append(sent.replace("\n", "")+" ");
+		}
+		String[] docTokens=  sb.toString().split(" ");
+		int i = 0;
+		while(i<docTokens.length){
+			int counter = 0;
+			String text="";
+			while(counter<10 && i<docTokens.length){
+				text += docTokens[i]+" ";
+				counter++;
+				i++;
+			}
+			//text = text.trim();
+			newdoc.add(text);
+		}
+		doc = newdoc;
+	}
 	public List<String[]> getSegmentTimes(){
 		return segmentTimes;
 	}

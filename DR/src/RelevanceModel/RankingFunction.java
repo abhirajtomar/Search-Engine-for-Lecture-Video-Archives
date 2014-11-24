@@ -136,15 +136,16 @@ public class RankingFunction {
             
             //Update the probabilities of query given each doc 
             for(int i=0;i<docProbs.length;i++){            	
-            	docProbs[i] += (v_q*Math.log(wordCounts[i]/docFreqs[i]));
+            	
+            	docProbs[i] += (v_q*(Math.log(wordCounts[i])-Math.log(docFreqs[i])));
             }           
         }
-		/*
+		
 		System.out.println("Final P(Q|d): ");
 		for(int i=0;i<docProbs.length;i++){
 			System.out.println((i+1)+". "+reader.document(i).getValues("title")[0]+" : "+docProbs[i]);
 		 }
-		 */
+		 
 	}
 	
 	/**
@@ -155,18 +156,23 @@ public class RankingFunction {
 	 */
 	public List<Integer> getTopNDocs(int n) throws IOException{
 		List<Integer> topDocs = new ArrayList<Integer>();
-		
-		ScoreComparator scoreComp = new ScoreComparator(docProbs);
-		PriorityQueue<Integer> docHeap = new PriorityQueue<Integer>(reader.numDocs(),scoreComp);
+		docScore[] docScores = new docScore[docProbs.length];
+		for (int i=0;i<docProbs.length;i++){
+			docScores[i] = new docScore(i,docProbs[i]);			
+		}
+		ScoreComparator scoreComp = new ScoreComparator();
+		PriorityQueue<docScore> docHeap = new PriorityQueue<docScore>(reader.numDocs(),scoreComp);
 		for (int i=0;i<docProbs.length;i++) {
-			docHeap.offer(i);
+			docHeap.offer(docScores[i]);
 			//System.out.println("");
-			//for(Integer yo:docHeap)System.out.print(yo+1 +",");
+			//for(docScore yo:docHeap)System.out.print(yo.docNum+1 +",");
 		}
 		//System.out.println("");
 		for(int i=0; i<n ; i++){
 			//topDocs.add(reader.document(docHeap.poll()).getValues("title")[0]);
-			topDocs.add(docHeap.poll());
+			topDocs.add(docHeap.poll().docNum);
+			//System.out.println("");
+			//for(docScore yo:docHeap)System.out.print(yo.docNum+1 +",");
 		}
 		
 		return topDocs;
@@ -231,24 +237,24 @@ public class RankingFunction {
 		return docFreqs;
 	}
 	
-	
-	
-	public class ScoreComparator implements Comparator<Integer>{
-		private double[] scores;		
-		
-		public ScoreComparator(double[] scores){
-			this.scores = scores;
-		}
-		
+	public class ScoreComparator implements Comparator<docScore>{
+
 		@Override
-		public int compare(Integer p, Integer q) {
-			if(scores[q]>scores[p])return 1;
-			else if(scores[q]<scores[p])return -1;
-			else return 0;
-			//return (int) (Math.abs(scores[p]) - Math.abs(scores[q]));
+		public int compare(docScore o1, docScore o2) {
+			// TODO Auto-generated method stub
+			return o1.score.compareTo(o2.score);
 		}
+		
 		
 	}
-	
+	public class docScore{
+		int docNum;
+		Double score;
+		
+		public docScore(int d,Double s){
+			docNum = d;
+			score = s;
+		}
+	}
 
 }
