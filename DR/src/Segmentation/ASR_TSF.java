@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ASR_TSF extends TSF {
-	List<String[]> startEndTimes;
-	List<String[]> segmentTimes;
-	public ASR_TSF(List<String> sentences,List<String[]> startEndTimes, double threshold, int minSegSize) {
-		super(sentences, threshold, minSegSize);
-		this.startEndTimes = startEndTimes;
-		segmentTimes = new ArrayList<String[]>();
+	//List<Double[]> startEndTimes;
+	//List<String[]> segmentTimes;
+	List<Double> wordTimes;
+	public ASR_TSF(List<String> sentences,List<Double> wordTimes, double threshold, int minSegSize) {
+		super(sentences, new ArrayList<Double[]>(),threshold, minSegSize);
+		//this.startEndTimes = startEndTimes;
+		this.wordTimes = wordTimes;
+		segmentTimes = new ArrayList<Double[]>();
 	}
 	
 	@Override
@@ -76,7 +78,7 @@ public class ASR_TSF extends TSF {
 		
 		for(Integer boundary:boundaries){
 			StringBuilder sb = new StringBuilder();
-			String[] times = new String[2];
+			Double[] times = new Double[2];
 			times[0] = startEndTimes.get(start)[0];
 			times[1] = startEndTimes.get(boundary)[1];
 			/*
@@ -94,6 +96,7 @@ public class ASR_TSF extends TSF {
 				sb = new StringBuilder();
 			}
 			*/
+			int lastStart = start;
 			while(start<=boundary){
 				sb.append(doc.get(start)+"\n");
 				start++;
@@ -105,14 +108,23 @@ public class ASR_TSF extends TSF {
 				
 				System.out.println("Bigger!!!"+wordcount);
 				int midpoint = newseg.length()/2;
+				int midSent = (lastStart+boundary)/2;
+				
+				Double midTime = (startEndTimes.get(midSent)[0] +startEndTimes.get(midSent)[1])/2;
+				
 				while(newseg.charAt(midpoint)!=' ')midpoint++;
 				String seg1 = newseg.substring(0,midpoint);
 				String seg2 = newseg.substring(midpoint);
 				
 				//*** Times need to be modified***
 				segments.add(seg1);
+				times[1] = midTime;
 				segmentTimes.add(times);
+				
 				segments.add(seg2);
+				times = new Double[2];
+				times[0] = midTime;
+				times[1] = startEndTimes.get(boundary)[1];
 				segmentTimes.add(times);
 				
 				
@@ -134,29 +146,35 @@ public class ASR_TSF extends TSF {
 		System.out.println("Total Segments: "+segments.size());
 		return segments;
 	}
+	@Override
 	public void formatSentencesOnWords(){
 		List<String> newdoc = new ArrayList<String>();
 		StringBuilder sb = new StringBuilder();
+		/*
 		for(String sent:doc){
 			sb.append(sent.replace("\n", "")+" ");
 		}
 		String[] docTokens=  sb.toString().split(" ");
+		*/
 		int i = 0;
-		while(i<docTokens.length){
+		while(i<doc.size()){
 			int counter = 0;
 			String text="";
-			while(counter<10 && i<docTokens.length){
-				text += docTokens[i]+" ";
+			Double[] time = new Double[2];
+			time[0] = wordTimes.get(i);
+			while(counter<10 && i<doc.size()){
+				text += doc.get(i)+" ";
 				counter++;
 				i++;
 			}
+			time[1] = wordTimes.get(i-1);
+			startEndTimes.add(time);
 			//text = text.trim();
 			newdoc.add(text);
 		}
 		doc = newdoc;
+		//for(String str:doc)System.out.println(str);
 	}
-	public List<String[]> getSegmentTimes(){
-		return segmentTimes;
-	}
+	
 
 }

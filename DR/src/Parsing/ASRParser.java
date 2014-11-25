@@ -18,6 +18,9 @@ import Segmentation.ASR_TSF;
 import Segmentation.TSF;
 
 public class ASRParser {
+	static List<String> segments;
+	static List<Double[]> segmentTimes;
+	
 	public static void main(String[] args) throws UnsupportedEncodingException{
 		String dir = "C:/Users/Abhiraj/Desktop/DR/";	   
 	    String fileName = dir+"MIT6_006F11_lec14_300k.xml/";//"CSCI570_2014140920140122.dat";
@@ -29,6 +32,7 @@ public class ASRParser {
 		StringBuilder text = new StringBuilder();		
 		XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
 		List<String> words = new ArrayList<String>();
+		List<Double> wordTimes = new ArrayList<Double>();
 		List<String> sentences = new ArrayList<String>();
 		List<String[]> startEndTimes = new ArrayList<String[]>();
 		
@@ -47,13 +51,8 @@ public class ASRParser {
 				XMLEvent xmlEvent = xmlEventReader.nextEvent();
 				if (xmlEvent.isStartElement()){
 					StartElement startElement = xmlEvent.asStartElement();
-					if(startElement.getName().getLocalPart().equals("REF")){						
-						xmlEvent = xmlEventReader.nextEvent();
-						if(!xmlEvent.isEndElement()){
-							words.add(xmlEvent.asCharacters().getData());
-						}
-					}
-					else if(startElement.getName().getLocalPart().equals("UTT")){
+					
+					if(startElement.getName().getLocalPart().equals("UTT")){
 						
 						QName name = new QName("SRT");
 						if(!firstSentence){
@@ -65,13 +64,10 @@ public class ASRParser {
 						else firstSentence = false;
 						
 						sb = new StringBuilder();
-						//sentList = new ArrayList<String>();	
 						times = new String[2];
 						times[0] = startElement.getAttributeByName(startAttr).getValue();
 						times[1] = startElement.getAttributeByName(endAttr).getValue();
-						//sentList.add(startElement.getAttributeByName(startAttr).getValue());
-						//sentList.add(startElement.getAttributeByName(endAttr).getValue());
-						
+												
 						while(true){
 							xmlEvent = xmlEventReader.nextEvent();
 							if(xmlEvent.isEndElement() ){
@@ -84,9 +80,12 @@ public class ASRParser {
 							else if (xmlEvent.isStartElement()){
 								
 								startElement = xmlEvent.asStartElement();
-								if(startElement.getName().getLocalPart().equals("WRD")){	
-									sb.append(startElement.getAttributeByName(name).getValue()+" ");
-									
+								if(startElement.getName().getLocalPart().equals("WRD")){
+									String word = startElement.getAttributeByName(name).getValue().replaceAll("\\\\.*\\s*", " ");
+									sb.append(word+" ");
+									words.add(word);
+									String time = startElement.getAttributeByName(startAttr).getValue();
+									wordTimes.add(Double.parseDouble(time));
 								}
 							}							
 						}
@@ -97,14 +96,21 @@ public class ASRParser {
 			//sentList.add(sentence);
 			sentences.add(sentence.replaceAll("\\\\.*\\s+", " "));
 			startEndTimes.add(times);
-			for(int i = 0 ;i<sentences.size();i++)System.out.println(startEndTimes.get(i)[0]+","+startEndTimes.get(i)[1]+","+sentences.get(i));
-			ASR_TSF segmenter = new ASR_TSF(sentences,startEndTimes,0.40,20);
-			List<String> segments = segmenter.getSegments();
-			List<String[]> segmentTimes = segmenter.getSegmentTimes();
+			//for(int i = 0 ;i<sentences.size();i++)System.out.println(startEndTimes.get(i)[0]+","+startEndTimes.get(i)[1]+","+sentences.get(i));
+			ASR_TSF segmenter = new ASR_TSF(words,wordTimes,0.35,20);
+			segments = segmenter.getSegments();
+			segmentTimes = segmenter.getSegmentTimes();
 			for(int i = 0 ;i<segments.size();i++)System.out.println(segmentTimes.get(i)[0]+"\n"+segmentTimes.get(i)[1]+"\n"+segments.get(i).replace("\n", " "));
 			System.out.println("Total Segments: "+segments.size());			
 		} catch (FileNotFoundException | XMLStreamException e) {
             e.printStackTrace();
         }
+	}
+	
+	public List<Double[]> getSegmentTimes(){
+		return segmentTimes;
+	}
+	public List<String> getSegments(){
+		return segments;
 	}
 }
