@@ -75,7 +75,7 @@ public class Indexer {
 			doc.add(new Field("contents", text, options));
 			*/
 	        Document doc = generateDoc(fileEntry);
-			w.addDocument(doc);
+			if(doc!=null)w.addDocument(doc);
 	    }
 		
 	    w.close();
@@ -86,7 +86,7 @@ public class Indexer {
 	    
 	    long startTime = System.currentTimeMillis();
   
-	    RankingFunction ranker = new RankingFunction(index,0.7);
+	    RankingFunction ranker = new RankingFunction(index,0.4);
 	    ranker.getQueryProbability(q);
 	    
 	    long endTime   = System.currentTimeMillis();
@@ -244,7 +244,7 @@ public class Indexer {
 				}
 			}		
 		}
-		
+		if(text=="")return null;
 		doc.add(new Field("title", fileEntry.getName(), options));
 		doc.add(new Field("contents", text, options));
 		//options.setIndexed(false);

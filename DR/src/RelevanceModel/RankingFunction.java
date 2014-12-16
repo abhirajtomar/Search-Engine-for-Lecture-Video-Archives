@@ -111,15 +111,15 @@ public class RankingFunction {
         	//Get the word frequency for each document
         	DocsEnum docsEnum = termEnum.docs(liveDocs, null);
             double[] wordCounts = new double[reader.numDocs()];
-            Arrays.fill(wordCounts, 1.0);
-            if (docsEnum != null) {
-            	if (docsEnum != null) {
-                    int doc;
-                    while ((doc = docsEnum.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-                    	wordCounts[doc] += docsEnum.freq(); 
-                    }
+            //Arrays.fill(wordCounts, 1.0);
+            
+        	if (docsEnum != null) {
+                int doc;
+                while ((doc = docsEnum.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
+                	wordCounts[doc] += docsEnum.freq(); 
                 }
             }
+           
             
             //Calculate the probability of word given query
             double v_q = 0.0;
@@ -132,13 +132,18 @@ public class RankingFunction {
             	}
             	else v_q += (smoothedCount)*(1/(Math.pow(docFreqs[i],terms.size())));
             }
+            //System.out.println("v_q="+v_q);
             v_q /= q_denom;
+            //System.out.println("v_q after div="+v_q);
+            //System.out.println("smoothing collection term"+smoothingCollectionTerm);
             
             //Update the probabilities of query given each doc 
-            for(int i=0;i<docProbs.length;i++){            	
-            	
-            	docProbs[i] += (v_q*(Math.log(wordCounts[i])-Math.log(docFreqs[i])));
-            }           
+            for(int i=0;i<docProbs.length;i++){            	            	
+            	//docProbs[i] += (v_q*(Math.log(wordCounts[i])-Math.log(docFreqs[i])));
+            	double smoothedCount = lambda*(wordCounts[i]/docFreqs[i]) + smoothingCollectionTerm;
+            	docProbs[i] +=  v_q*(Math.log(smoothedCount));
+            }    
+            //break;
         }
 		
 		System.out.println("Final P(Q|d): ");
@@ -225,6 +230,7 @@ public class RankingFunction {
 			for(int i=0;i<docFreqs.length;i++){
 				
 				Document doc = reader.document(i);
+				//System.out.println(doc.get("title"));
 				Terms termVector = reader.getTermVector(i, field);
 			    TermsEnum itr = termVector.iterator(null);
 			    BytesRef term = null;
@@ -242,7 +248,7 @@ public class RankingFunction {
 		@Override
 		public int compare(docScore o1, docScore o2) {
 			// TODO Auto-generated method stub
-			return o1.score.compareTo(o2.score);
+			return o2.score.compareTo(o1.score);
 		}
 		
 		

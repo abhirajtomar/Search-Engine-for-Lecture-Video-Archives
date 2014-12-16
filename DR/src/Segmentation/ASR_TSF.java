@@ -104,7 +104,7 @@ public class ASR_TSF extends TSF {
 			String newseg = sb.toString();
 			
 			int wordcount = newseg.replace("\n"," ").split(" ").length;
-			if(wordcount>350){
+			if(wordcount>450){
 				
 				System.out.println("Bigger!!!"+wordcount);
 				int midpoint = newseg.length()/2;
