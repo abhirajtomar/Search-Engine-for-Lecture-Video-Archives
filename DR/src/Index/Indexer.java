@@ -84,29 +84,11 @@ public class Indexer {
 	    String queryStr = "breadth first search";
 	    Query q = new QueryParser("contents", analyzer).parse(queryStr);
 	    
-	    long startTime = System.currentTimeMillis();
-  
-	    RankingFunction ranker = new RankingFunction(index,0.4);
-	    ranker.getQueryProbability(q);
 	    
-	    long endTime   = System.currentTimeMillis();
-	    long totalTime = endTime - startTime;
-	    System.out.println("TIME: "+totalTime);
-	    
-	    IndexReader reader = DirectoryReader.open(index);
-	    List<Integer> topDocs_RM = ranker.getTopNDocs(10);
-	    
-	    
-	    System.out.println("\nRelevance Model Estimation:");
-	    for(int i = 1;i<=10;i++){	    
-	    	Document docn = reader.document(topDocs_RM.get(i-1));
-	    	System.out.println(i+". "+docn.get("title"));
-	    	//System.out.println(docn.get("contents").replace("\n"," "));
-	    }
 	    
 	    //Search
 	    int hitsPerPage = 10;
-	    //IndexReader reader = DirectoryReader.open(index);	    
+	    IndexReader reader = DirectoryReader.open(index);
 	    IndexSearcher searcher = new IndexSearcher(reader);
 	    TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage, true);
 	    searcher.search(q, collector);
@@ -123,14 +105,49 @@ public class Indexer {
 			  //System.out.println(d.get("contents"));
 	    }
 	    
+	    long startTime = System.currentTimeMillis();
+	    
+	    //RankingFunction ranker = new RankingFunction(index,0.4);
+	    RankingFunction ranker = new RankingFunction(index,0.4,topDocs_L);
+	    ranker.getQueryProbability(q);
+	    
+	    long endTime   = System.currentTimeMillis();
+	    long totalTime = endTime - startTime;
+	    System.out.println("TIME: "+totalTime);
+	    
+	    
+	    List<Integer> topDocs_RM = ranker.getTopNDocs(10);
+	    
+	    
+	    System.out.println("\nRelevance Model Estimation:");
+	    for(int i = 1;i<=10;i++){	    
+	    	Document docn = reader.document(topDocs_RM.get(i-1));
+	    	System.out.println(i+". "+docn.get("title"));
+	    	//System.out.println(docn.get("contents").replace("\n"," "));
+	    }
+	    
 	    Set<Integer> unionSet = new HashSet<Integer>();
 	    unionSet.addAll(topDocs_RM);
 	    unionSet.addAll(topDocs_L);
 	    List<Integer> topDocs = new ArrayList<Integer>(unionSet);
 	    	    
 	    generateSurveyFile(queryStr,topDocs,reader);
-	    
+	    generateOutputFile(topDocs_RM,reader,"RM_docs.txt");
+	    generateOutputFile(topDocs_L,reader,"L_docs.txt");
 	    reader.close();
+	}
+	
+	private static void generateOutputFile(List<Integer> docs,IndexReader reader, String title) throws IOException{
+		PrintWriter writer = new PrintWriter(dir+"survey/"+title, "ISO-8859-1");	
+	    StringBuilder sb =  new StringBuilder();
+	    for(int i = 0; i < docs.size(); i++){
+	    	sb.append((i+1)+"\n");
+	    	sb.append(getDocText(reader,docs.get(i)));
+	    	sb.append("\n");
+	    }
+	    
+	    writer.println(sb.toString());
+		writer.close();
 	}
 	
 	private static void generateSurveyFile(String queryStr,

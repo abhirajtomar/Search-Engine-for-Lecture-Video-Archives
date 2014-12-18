@@ -6,9 +6,9 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.Set;
 
@@ -33,11 +33,23 @@ public class RankingFunction {
 	private IndexReader reader;
 	private double lambda;
 	private double[] docProbs;
+	private boolean useWholeCollection;
+	private List<Integer> LuceneDocs;
 	
 	public RankingFunction(Directory index, double lambda) throws IOException{
 		this.index=index;
 		this.lambda = lambda;
-		reader = DirectoryReader.open(this.index);		
+		reader = DirectoryReader.open(this.index);	
+		useWholeCollection = true;
+		this.LuceneDocs = null;
+	}
+	
+	public RankingFunction(Directory index, double lambda,List<Integer> LuceneDocs) throws IOException{
+		this.index=index;
+		this.lambda = lambda;
+		reader = DirectoryReader.open(this.index);	
+		useWholeCollection = false;
+		this.LuceneDocs = LuceneDocs;
 	}
 	
 	public void getQueryProbability(Query q) throws IOException{
@@ -103,54 +115,114 @@ public class RankingFunction {
 		
 		//new way by using additional space
 		//Iterate over Vocab
-		TermsEnum termEnum = MultiFields.getTerms(reader, "contents").iterator(null);
-		BytesRef bytesRef;		
-        while ((bytesRef = termEnum.next()) != null){
-        	double totalFreqRatio = reader.totalTermFreq(new Term("contents",bytesRef));
-        	totalFreqRatio /= reader.getSumTotalTermFreq("contents");
-        	//Get the word frequency for each document
-        	DocsEnum docsEnum = termEnum.docs(liveDocs, null);
-            double[] wordCounts = new double[reader.numDocs()];
-            //Arrays.fill(wordCounts, 1.0);
-            
-        	if (docsEnum != null) {
-                int doc;
-                while ((doc = docsEnum.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-                	wordCounts[doc] += docsEnum.freq(); 
-                }
-            }
-           
-            
-            //Calculate the probability of word given query
-            double v_q = 0.0;
-            double smoothingCollectionTerm = (1-lambda)*(totalFreqRatio);
-            for(int i=0;i<wordCounts.length;i++){
-            	
-            	double smoothedCount = lambda*(wordCounts[i]/docFreqs[i]) + smoothingCollectionTerm;
-            	if(queryProbsMap.keySet().contains(i)){
-            		v_q += (smoothedCount)*queryProbsMap.get(i);
-            	}
-            	else v_q += (smoothedCount)*(1/(Math.pow(docFreqs[i],terms.size())));
-            }
-            //System.out.println("v_q="+v_q);
-            v_q /= q_denom;
-            //System.out.println("v_q after div="+v_q);
-            //System.out.println("smoothing collection term"+smoothingCollectionTerm);
-            
-            //Update the probabilities of query given each doc 
-            for(int i=0;i<docProbs.length;i++){            	            	
-            	//docProbs[i] += (v_q*(Math.log(wordCounts[i])-Math.log(docFreqs[i])));
-            	double smoothedCount = lambda*(wordCounts[i]/docFreqs[i]) + smoothingCollectionTerm;
-            	docProbs[i] +=  v_q*(Math.log(smoothedCount));
-            }    
-            //break;
-        }
+		if(useWholeCollection){
+			TermsEnum termEnum = MultiFields.getTerms(reader, "contents").iterator(null);
+			BytesRef bytesRef;		
+	        while ((bytesRef = termEnum.next()) != null){
+	        	double totalFreqRatio = reader.totalTermFreq(new Term("contents",bytesRef));
+	        	totalFreqRatio /= reader.getSumTotalTermFreq("contents");
+	        	//Get the word frequency for each document
+	        	DocsEnum docsEnum = termEnum.docs(liveDocs, null);
+	            double[] wordCounts = new double[reader.numDocs()];
+	            //Arrays.fill(wordCounts, 1.0);
+	            
+	        	if (docsEnum != null) {
+	                int doc;
+	                while ((doc = docsEnum.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
+	                	wordCounts[doc] += docsEnum.freq(); 
+	                }
+	            }
+	           
+	            
+	            //Calculate the probability of word given query
+	            double v_q = 0.0;
+	            double smoothingCollectionTerm = (1-lambda)*(totalFreqRatio);
+	            for(int i=0;i<wordCounts.length;i++){
+	            	
+	            	double smoothedCount = lambda*(wordCounts[i]/docFreqs[i]) + smoothingCollectionTerm;
+	            	if(queryProbsMap.keySet().contains(i)){
+	            		v_q += (smoothedCount)*queryProbsMap.get(i);
+	            	}
+	            	else v_q += (smoothedCount)*(1/(Math.pow(docFreqs[i],terms.size())));
+	            }
+	            //System.out.println("v_q="+v_q);
+	            v_q /= q_denom;
+	            //System.out.println("v_q after div="+v_q);
+	            //System.out.println("smoothing collection term"+smoothingCollectionTerm);
+	            
+	            //Update the probabilities of query given each doc 
+	            for(int i=0;i<docProbs.length;i++){            	            	
+	            	//docProbs[i] += (v_q*(Math.log(wordCounts[i])-Math.log(docFreqs[i])));
+	            	double smoothedCount = lambda*(wordCounts[i]/docFreqs[i]) + smoothingCollectionTerm;
+	            	docProbs[i] +=  v_q*(Math.log(smoothedCount));
+	            }    
+	            //break;
+	        }
+		}
+		else{
+			Set<BytesRef> vocab = new HashSet<BytesRef>();
 		
+			for(int ii=0;ii<LuceneDocs.size();ii++){
+				int docIndex = LuceneDocs.get(ii);
+				Terms termVector = reader.getTermVector(docIndex, "contents");
+			    TermsEnum itr = termVector.iterator(null);
+			    BytesRef bytesRef = null;
+			    
+			    while ((bytesRef = itr.next()) != null) {   
+			    	if(vocab.contains(bytesRef)){
+			    		continue;
+			    	}
+			    	
+			        vocab.add(bytesRef);
+			        //System.out.println(bytesRef.utf8ToString());
+			    	double totalFreqRatio = reader.totalTermFreq(new Term("contents",bytesRef));
+		        	totalFreqRatio /= reader.getSumTotalTermFreq("contents");
+		        	//Get the word frequency for each document
+		        	DocsEnum docsEnum = MultiFields.getTermDocsEnum(reader, liveDocs, "contents", bytesRef);
+		            double[] wordCounts = new double[reader.numDocs()];
+		            if (docsEnum != null) {
+		                int doc;
+		                while ((doc = docsEnum.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
+		                	wordCounts[doc] += docsEnum.freq(); 
+		                	//System.out.println(doc);
+		                }
+		            }
+		           
+		            
+		            //Calculate the probability of word given query
+		            double v_q = 0.0;
+		            double smoothingCollectionTerm = (1-lambda)*(totalFreqRatio);
+		            for(int i=0;i<wordCounts.length;i++){
+		            	
+		            	double smoothedCount = lambda*(wordCounts[i]/docFreqs[i]) + smoothingCollectionTerm;
+		            	if(queryProbsMap.keySet().contains(i)){
+		            		v_q += (smoothedCount)*queryProbsMap.get(i);
+		            	}
+		            	else v_q += (smoothedCount)*(1/(Math.pow(docFreqs[i],terms.size())));
+		            }
+		            //System.out.println("v_q="+v_q);
+		            v_q /= q_denom;
+		            //System.out.println("v_q after div="+v_q);
+		            //System.out.println("smoothing collection term"+smoothingCollectionTerm);
+		            
+		            //Update the probabilities of query given each doc 
+		            for(int i=0;i<docProbs.length;i++){            	            	
+		            	//docProbs[i] += (v_q*(Math.log(wordCounts[i])-Math.log(docFreqs[i])));
+		            	double smoothedCount = lambda*(wordCounts[i]/docFreqs[i]) + smoothingCollectionTerm;
+		            	docProbs[i] +=  v_q*(Math.log(smoothedCount));
+		            }
+		            //break;
+			    }
+			}
+					
+			
+		}
+		/*
 		System.out.println("Final P(Q|d): ");
 		for(int i=0;i<docProbs.length;i++){
 			System.out.println((i+1)+". "+reader.document(i).getValues("title")[0]+" : "+docProbs[i]);
 		 }
-		 
+		 */
 	}
 	
 	/**
