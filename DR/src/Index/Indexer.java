@@ -10,6 +10,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Scanner;
 import java.util.Set;
 
 import javax.xml.stream.XMLEventReader;
@@ -41,6 +42,7 @@ import RelevanceModel.RankingFunction;
 
 public class Indexer {
 	static String dir;
+	static String instructions;
 	public static void main(String[] args) throws IOException, ParseException, XMLStreamException{
 		//Indexing
 		StandardAnalyzer analyzer = new StandardAnalyzer();
@@ -62,7 +64,8 @@ public class Indexer {
 	    //String fileName = dir+"CSCI570_2014140920140122.dat";//"CSCI570_2014140920140122.dat";
 	    //w.addDocuments(Parser.getText(fileName));
 		//w.addDocument(Parser.getText(fileName));
-	    File folder = new File(dir+"segments/");
+	    String folderName = "segments_asr";
+	    File folder = new File(dir+folderName+"/");
 	    for (File fileEntry : folder.listFiles()) {	       
 	        //String fileName = dir+"segments/"+fileEntry.getName()+"/";
 	        		
@@ -74,66 +77,89 @@ public class Indexer {
 	        doc.add(new Field("title", fileEntry.getName(), options));
 			doc.add(new Field("contents", text, options));
 			*/
-	        Document doc = generateDoc(fileEntry);
+	        Document doc = generateDoc(fileEntry.getName(),folderName);
 			if(doc!=null)w.addDocument(doc);
 	    }
 		
 	    w.close();
 	    
+	    //Reading the instructions file
+	    instructions = new Scanner(new File(dir+"instructions.txt")).useDelimiter("\\Z").next();
+	    
 	    //Query
-	    String queryStr = "breadth first search";
-	    Query q = new QueryParser("contents", analyzer).parse(queryStr);
+	    String queryFile = dir+"queries.txt";
+	    BufferedReader br = new BufferedReader(new FileReader(queryFile));
+	    //String queryStr;// = "breadth first search";
 	    
+	    List<String[]> queryInfo = new ArrayList<String[]>();
+	    String qReader;
+	    while ((qReader = br.readLine()) != null){
+	    	String [] newQuery = new String[4];
+	    	newQuery[0] = qReader;
+	    	newQuery[1] = br.readLine();
+	    	newQuery[2] = br.readLine();
+	    	newQuery[3] = br.readLine();
+	    	queryInfo.add(newQuery);
+	    }
 	    
-	    
-	    //Search
-	    int hitsPerPage = 10;
 	    IndexReader reader = DirectoryReader.open(index);
 	    IndexSearcher searcher = new IndexSearcher(reader);
-	    TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage, true);
-	    searcher.search(q, collector);
-	    ScoreDoc[] hits = collector.topDocs().scoreDocs;
+	    String title = "surveyQualtrics.txt";
+	    PrintWriter writer = new PrintWriter(dir+"survey/"+title, "ISO-8859-1");
+	    writer.println("[[AdvancedFormat]]\n");
 	    
-	    //Output
-	    System.out.println("\nLucene:Found " + hits.length + " hits.");
-	    List<Integer> topDocs_L = new ArrayList<Integer>();
-	    for(int i=0;i<hits.length;++i) {
-			  int docId = hits[i].doc;
-			  topDocs_L.add(docId);
-			  Document d = searcher.doc(docId);
-			  System.out.println((i + 1) + ". " + d.get("title"));
-			  //System.out.println(d.get("contents"));
-	    }
-	    
-	    long startTime = System.currentTimeMillis();
-	    
-	    //RankingFunction ranker = new RankingFunction(index,0.4);
-	    RankingFunction ranker = new RankingFunction(index,0.4,topDocs_L);
-	    ranker.getQueryProbability(q);
-	    
-	    long endTime   = System.currentTimeMillis();
-	    long totalTime = endTime - startTime;
-	    System.out.println("TIME: "+totalTime);
-	    
-	    
-	    List<Integer> topDocs_RM = ranker.getTopNDocs(10);
-	    
-	    
-	    System.out.println("\nRelevance Model Estimation:");
-	    for(int i = 1;i<=10;i++){	    
-	    	Document docn = reader.document(topDocs_RM.get(i-1));
-	    	System.out.println(i+". "+docn.get("title"));
-	    	//System.out.println(docn.get("contents").replace("\n"," "));
-	    }
-	    
-	    Set<Integer> unionSet = new HashSet<Integer>();
-	    unionSet.addAll(topDocs_RM);
-	    unionSet.addAll(topDocs_L);
-	    List<Integer> topDocs = new ArrayList<Integer>(unionSet);
-	    	    
-	    generateSurveyFile(queryStr,topDocs,reader);
-	    generateOutputFile(topDocs_RM,reader,"RM_docs.txt");
-	    generateOutputFile(topDocs_L,reader,"L_docs.txt");
+		for(String[] query : queryInfo){
+			String queryStr = query[0];
+		    Query q = new QueryParser("contents", analyzer).parse(queryStr);		    
+		    
+		    //Search
+		    int hitsPerPage = 10;		    
+		    TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage, true);
+		    searcher.search(q, collector);
+		    ScoreDoc[] hits = collector.topDocs().scoreDocs;
+		    
+		    //Output
+		    System.out.println("\nLucene:Found " + hits.length + " hits.");
+		    List<Integer> topDocs_L = new ArrayList<Integer>();
+		    for(int i=0;i<hits.length;++i) {
+				  int docId = hits[i].doc;
+				  topDocs_L.add(docId);
+				  Document d = searcher.doc(docId);
+				  System.out.println((i + 1) + ". " + d.get("title"));
+				  //System.out.println(d.get("contents"));
+		    }
+		    
+		    long startTime = System.currentTimeMillis();
+		    
+		    RankingFunction ranker = new RankingFunction(index,0.7);
+		    //RankingFunction ranker = new RankingFunction(index,0.4,topDocs_L);
+		    ranker.getQueryProbability(q);
+		    
+		    long endTime   = System.currentTimeMillis();
+		    long totalTime = endTime - startTime;
+		    System.out.println("TIME: "+totalTime);
+		    
+		    
+		    List<Integer> topDocs_RM = ranker.getTopNDocs(10);
+		    
+		    
+		    System.out.println("\nRelevance Model Estimation:");
+		    for(int i = 1;i<=10;i++){	    
+		    	Document docn = reader.document(topDocs_RM.get(i-1));
+		    	System.out.println(i+". "+docn.get("title"));
+		    	//System.out.println(docn.get("contents").replace("\n"," "));
+		    }
+		    
+		    Set<Integer> unionSet = new HashSet<Integer>();
+		    unionSet.addAll(topDocs_RM);
+		    unionSet.addAll(topDocs_L);
+		    List<Integer> topDocs = new ArrayList<Integer>(unionSet);
+		    writeToSurveyFile(query,topDocs,reader,writer);
+	    }	    
+	    //writeToSurveyFile(queryStr,topDocs,reader);
+	    //generateOutputFile(topDocs_RM,reader,"RM_docs.txt");
+	    //generateOutputFile(topDocs_L,reader,"L_docs.txt");
+	    writer.close();
 	    reader.close();
 	}
 	
@@ -150,23 +176,28 @@ public class Indexer {
 		writer.close();
 	}
 	
-	private static void generateSurveyFile(String queryStr,
-			List<Integer> topDocs,IndexReader reader) throws IOException {
+	private static void writeToSurveyFile(String[] query,
+			List<Integer> topDocs,IndexReader reader,PrintWriter writer) throws IOException, XMLStreamException {
 		
-		String title = "surveyQualtrics.txt";
-	    PrintWriter writer = new PrintWriter(dir+"survey/"+title, "ISO-8859-1");	
+			
 	    StringBuilder sb =  new StringBuilder();
 	    int qnum = 1;
-	    sb.append("[[AdvancedFormat]]\n");
+	    //sb.append("[[AdvancedFormat]]\n");
 	    int i = 0;
 	    while(i<topDocs.size()){
 	    	if(i%5==0){
 	    		sb.append("\n[[Question:Matrix]]");
 		    	sb.append("\n"+qnum+". Q_RM.");
-		    	sb.append(" Query:"+queryStr+"\n");	    	
-		    	sb.append("[[Choices]]\n");
+		    	sb.append(instructions+"\n\n");
+		    	sb.append("Query:"+query[0]+"\n");
+		    	sb.append("Relevant Segments: "+query[1]+"\n");
+		    	sb.append("Partially Relevant Segments: "+query[2]+"\n");
+		    	sb.append("Irrelevant Segments: "+query[3]+"\n\n");
+		    		    	
+		    	sb.append("[[AdvancedChoices]]\n");
 	    	}
-	    	sb.append(getDocText(reader,topDocs.get(i)));
+	    	//sb.append(getDocText(reader,topDocs.get(i)));
+	    	sb.append(getTwinDocText(reader,topDocs.get(i)));
 	    	i++;
 	    	if(i%5==0){
 	    		sb.append("\n[[AdvancedAnswers]]\n[[Answer]]\nRelevant\n[[Answer]]\nPartially Relevant\n[[Answer]]\nIrrelevant\n");
@@ -176,52 +207,27 @@ public class Indexer {
 	    if(i%5!=0){
     		sb.append("\n[[AdvancedAnswers]]\n[[Answer]]\nRelevant\n[[Answer]]\nPartially Relevant\n[[Answer]]\nIrrelevant\n");
     	}
-	    /*
-	    for(int i=1;i<10;i=i+5){
-	    	sb.append("\n[[Question:Matrix]]");
-	    	sb.append("\n"+qnum+". Q_RM.");
-	    	sb.append(" Query:"+queryStr+"\n");	    	
-	    	sb.append("[[Choices]]\n");
-	    	sb.append(getDocText(reader,topDocs.get(i-1)));
-	    	sb.append(getDocText(reader,topDocs.get(i)));
-	    	sb.append(getDocText(reader,topDocs.get(i+1)));
-	    	sb.append(getDocText(reader,topDocs.get(i+2)));
-	    	sb.append(getDocText(reader,topDocs.get(i+3)));
-	    	
-	    	sb.append("\n[[AdvancedAnswers]]\n[[Answer]]\nRelevant\n[[Answer]]\nPartially Relevant\n[[Answer]]\nIrrelevant\n");
-	    	qnum++;
-	    }
 	    
-	    for(int i=0;i<hits.length;i=i+5){
-	    	sb.append("\n[[Question:Matrix]]");
-	    	//System.out.println(i+". "+docn.get("title"));
-	    	sb.append("\n"+qnum+". Q_L.");
-	    	sb.append(" Query:"+queryStr+"\n");
-	    	sb.append("[[Choices]]\n");
-	    	sb.append(getDocText(reader,hits[i].doc));
-	    	sb.append(getDocText(reader,hits[i+1].doc));
-	    	sb.append(getDocText(reader,hits[i+2].doc));
-	    	sb.append(getDocText(reader,hits[i+3].doc));
-	    	sb.append(getDocText(reader,hits[i+4].doc));
-	    	
-	    	sb.append("\n[[AdvancedAnswers]]\n[[Answer]]\nRelevant\n[[Answer]]\nPartially Relevant\n[[Answer]]\nIrrelevant\n");
-	    	qnum++;
-	    }
-	    */
 	    writer.println(sb.toString());
-		writer.close();
+		
 	}
 
-	private static Object getDocText(IndexReader reader, int i) throws IOException {
+	private static String getDocText(IndexReader reader, int i) throws IOException {
 		Document doc = reader.document(i);
-		String text = doc.get("title")+"Text:"+doc.get("contents").replace("\n", " ");
+		String text = "[[Choice]]\n"+doc.get("title")+":\n"+doc.get("contents").replace("\n", " ");
 		return text+"\n";
 	}
-
-	private static Document generateDoc(File fileEntry) throws FileNotFoundException, XMLStreamException {
+	private static String getTwinDocText(IndexReader reader,int i) throws IOException, XMLStreamException{
+		Document doc = reader.document(i);
+		Document twinDoc = generateDoc(doc.get("title"),"segments");
+		String text = "[[Choice]]\n"+doc.get("title")+":\n"+twinDoc.get("contents").replace("\n", " ");
+		return text+"\n";
+	}
+	private static Document generateDoc(String file, String fileFolder) throws FileNotFoundException, XMLStreamException {
 		Document doc = new Document();
-		String fileName = dir+"segments/"+fileEntry.getName()+"/";
-        
+		String fileName = dir+fileFolder+"/"+file+"/";
+        //System.out.println(fileFolder+"/"+file);
+		
         FieldType options = new FieldType();
 		options.setIndexed(true); 
 		options.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS); 
@@ -262,7 +268,7 @@ public class Indexer {
 			}		
 		}
 		if(text=="")return null;
-		doc.add(new Field("title", fileEntry.getName(), options));
+		doc.add(new Field("title", file, options));
 		doc.add(new Field("contents", text, options));
 		//options.setIndexed(false);
 		doc.add(new Field("startTime",startTime,options));

@@ -47,7 +47,7 @@ public class ASRParser {
 				writer.println("<body>");
 				writer.println("<startTime>"+segmentTimes.get(i)[0]+"</startTime>");	
 				writer.println("<endTime>"+segmentTimes.get(i)[1]+"</endTime>");
-				writer.println("<text>"+segment+"</text>");	
+				writer.println("<text>"+segment.replaceAll("&", "and")+"</text>");	
 				writer.println("</body>");
 				writer.close();
 				//System.out.println(segment);

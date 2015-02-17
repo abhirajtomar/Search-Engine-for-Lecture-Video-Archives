@@ -21,8 +21,8 @@ public class Parser {
 	
 	public static void main(String[] args) throws UnsupportedEncodingException{
 		String dir = "C:/Users/Abhiraj/git/Search Engine for Lecture Video Archives/DR/files/cs570/";	   
-	    //String fileName = dir+"transcripts/CSCI570_2014165820140205.dat";//"CSCI570_2014140920140122.dat";
-	    //fileName = "C:/Users/Abhiraj/Desktop/DR/ffmpeg/EE441_2014321620141015.dfxp.xml";
+	    //String fileName = dir+"transcripts/CSCI570_2014153420140129.dat";//"CSCI570_2014140920140122.dat";
+	    //fileName = "F:/EE441/EE441_2014312120140910.dfxp";
 		//getText(fileName);
 		
 		File folder = new File(dir+"transcripts/");
@@ -82,6 +82,8 @@ public class Parser {
 				startEndTimes.get(i)[1] = startEndTimes.get(i)[1]-offset;				
 			}
 			*/
+			
+			//***for generating text file for training
 			/*
 			PrintWriter writer2 = new PrintWriter(dir+"yoyo_orig.txt", "ISO-8859-1");
 			for(String sent:sentences)writer2.println(sent);
