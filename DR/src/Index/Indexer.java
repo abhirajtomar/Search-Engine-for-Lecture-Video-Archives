@@ -64,7 +64,7 @@ public class Indexer {
 	    //String fileName = dir+"CSCI570_2014140920140122.dat";//"CSCI570_2014140920140122.dat";
 	    //w.addDocuments(Parser.getText(fileName));
 		//w.addDocument(Parser.getText(fileName));
-	    String folderName = "segments_asr";
+	    String folderName = "segments";
 	    File folder = new File(dir+folderName+"/");
 	    for (File fileEntry : folder.listFiles()) {	       
 	        //String fileName = dir+"segments/"+fileEntry.getName()+"/";
@@ -82,6 +82,36 @@ public class Indexer {
 	    }
 		
 	    w.close();
+	    
+	    //Indexing the external corpus for query expansion
+	    Directory index_ext = new RAMDirectory();
+	    IndexWriterConfig config_ext = new IndexWriterConfig(Version.LATEST, analyzer);
+	    w = new IndexWriter(index_ext, config_ext);
+	    
+	    folder = new File(dir+"Cormen"+"/");
+	    for (File fileEntry : folder.listFiles()) {	       
+	    	FileInputStream fis = new FileInputStream(fileEntry);
+	    	byte[] data = new byte[(int) fileEntry.length()];
+	    	fis.read(data);
+	    	fis.close();
+
+	    	String str = new String(data, "UTF-8");
+	    	
+	    	Document doc = new Document();			
+	        FieldType options = new FieldType();
+			options.setIndexed(true); 
+			options.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS); 
+			options.setStored(true); 
+			options.setStoreTermVectors(true); 
+			options.setTokenized(true);
+			
+			doc.add(new Field("title", fileEntry.getName(), options));
+			doc.add(new Field("contents", str, options));
+			
+			if(doc!=null)w.addDocument(doc);
+	    }		
+	    w.close();
+	    
 	    
 	    //Reading the instructions file
 	    instructions = new Scanner(new File(dir+"instructions.txt")).useDelimiter("\\Z").next();
@@ -131,8 +161,9 @@ public class Indexer {
 		    
 		    long startTime = System.currentTimeMillis();
 		    
-		    RankingFunction ranker = new RankingFunction(index,0.7);
+		    //RankingFunction ranker = new RankingFunction(index,0.7);
 		    //RankingFunction ranker = new RankingFunction(index,0.4,topDocs_L);
+		    RankingFunction ranker = new RankingFunction(index,index_ext,0.7);
 		    ranker.getQueryProbability(q);
 		    
 		    long endTime   = System.currentTimeMillis();
@@ -187,17 +218,17 @@ public class Indexer {
 	    while(i<topDocs.size()){
 	    	if(i%5==0){
 	    		sb.append("\n[[Question:Matrix]]");
-		    	sb.append("\n"+qnum+". Q_RM.");
+		    	sb.append("\n"+qnum+". ");
 		    	sb.append(instructions+"\n\n");
-		    	sb.append("Query:"+query[0]+"\n");
-		    	sb.append("Relevant Segments: "+query[1]+"\n");
-		    	sb.append("Partially Relevant Segments: "+query[2]+"\n");
-		    	sb.append("Irrelevant Segments: "+query[3]+"\n\n");
+		    	sb.append("<br /><br /><strong>Query:</strong>"+query[0]+"\n");
+		    	sb.append("<div><br><ul><li><strong>Relevant Segments:</strong>"+query[1]+"</li>\n");
+		    	sb.append("<li><strong>Partially Relevant Segments:</strong>"+query[2]+"</li>\n");
+		    	sb.append("<li><strong>Irrelevant Segments:</strong>"+query[3]+"</li></ul></div>\n\n");
 		    		    	
 		    	sb.append("[[AdvancedChoices]]\n");
 	    	}
-	    	//sb.append(getDocText(reader,topDocs.get(i)));
-	    	sb.append(getTwinDocText(reader,topDocs.get(i)));
+	    	sb.append(getDocText(reader,topDocs.get(i)));
+	    	//sb.append(getTwinDocText(reader,topDocs.get(i)));
 	    	i++;
 	    	if(i%5==0){
 	    		sb.append("\n[[AdvancedAnswers]]\n[[Answer]]\nRelevant\n[[Answer]]\nPartially Relevant\n[[Answer]]\nIrrelevant\n");
@@ -214,13 +245,13 @@ public class Indexer {
 
 	private static String getDocText(IndexReader reader, int i) throws IOException {
 		Document doc = reader.document(i);
-		String text = "[[Choice]]\n"+doc.get("title")+":\n"+doc.get("contents").replace("\n", " ");
+		String text = "[[Choice]]\n<div style=\"width:500px\"><span style=\"visibility: hidden\">"+doc.get("title")+":</span><br />\n"+doc.get("contents").replace("\n", " ")+"</div>";
 		return text+"\n";
 	}
 	private static String getTwinDocText(IndexReader reader,int i) throws IOException, XMLStreamException{
 		Document doc = reader.document(i);
 		Document twinDoc = generateDoc(doc.get("title"),"segments");
-		String text = "[[Choice]]\n"+doc.get("title")+":\n"+twinDoc.get("contents").replace("\n", " ");
+		String text = "[[Choice]]\n<div style=\"width:500px\"><span style=\"visibility: hidden\">"+doc.get("title")+":</span><br />\n"+twinDoc.get("contents").replace("\n", " ")+"</div>";
 		return text+"\n";
 	}
 	private static Document generateDoc(String file, String fileFolder) throws FileNotFoundException, XMLStreamException {
